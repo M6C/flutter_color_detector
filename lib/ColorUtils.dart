@@ -721,6 +721,8 @@ class ColorUtils
     return colorList;
   }
 
+  static Color inverseColor(Color c) => Color.fromRGBO(255-c.red, 255-c.green, 255-c.blue, c.opacity);
+
   static String getColorNameFromRgb(int r, int g, int b)
   {
     List<ColorName> colorList = initColorList();
