@@ -4,6 +4,137 @@ class ColorUtils
 {
   static int INT_MAX_VALUE = 2147483647;
 
+  // http://www.1728.org/RGB3.htm
+  // https://htmlcolorcodes.com/fr/
+  static var mapBW = {
+    // "Black":["000000","222222","444444",],
+    // "Grey":["666666","888888","AAAAAA",],
+    // "White":["CCCCCC","EEEEEE","FFFFFF"],
+    "Black": ["000000", "202020", "404040",],
+    "Grey": ["606060", "808080", "A0A0A0",],
+    "White": ["C0C0C0", "E0E0E0", "FFFFFF"],
+  };
+
+  // https://www.rapidtables.com/web/color/maroon-color.html
+  static var mapColor = {
+    "Red":["FF0040","FF0020","FF0000","FF2000","FF4000",],
+    "Orange":["FF6000","FF8000","FFAA00","FFBF00",],
+    // "Brown": ["800000","964B00", "8B0000", "A52A2A", "B22222",
+              // "DC143C", "8B4513", "D2691E", "CD853F", "DAA520", "F4A460", "BC8F8F", "D2B48C", "DEB887", "F5DEB3", "FFDEAD", "FFE4C4", "FFEBCD", "FFF8DC",
+    // ],
+    "Yellow":["FFEE00","FFFF00","DDFF00",],
+    "Green":["CCFF00","AAFF00","808000","80FF00","60FF00","40FF00","20FF00","00FF00","00FF20","00FF40","00FF40","00FF60","00FF80","00FFAA",],
+    "Blue":["00FFCC","00FFDD","00FFFF","00DDFF","00CCFF","0099FF","0080FF","0060FF","0040FF","0020FF","0000FF","2000FF","4000FF","6000FF",
+              // "191970", "000080", "00008B", "0000CD", "4169E1", "483D8B", "6A5ACD", "7B68EE", "5F9EA0", "4682B4", "6495ED", "1E90FF", "B0C4DE", "00BFFF", "87CEEB", "87CEFA", "ADD8E6", "B0E0E6", "E6E6FA", "F0F8FF",
+    ],
+    "Violet":["8000FF","AA00FF","CC00FF","DD00FF"],
+    "Fuchsia":["FF00FF","FF00EE","FF00CC"],
+    "Pink":["FF00AA","FF0080","FF0060"],
+  };
+
+  static List<ColorName> colorFromMap() {
+    List<ColorName> ret = [];
+    mapColor.forEach((key, value) {
+      for(String hex in value) {
+        ret.add(ColorName.fromHex(key, hex));
+      }
+    });
+    return ret;
+  }
+
+  static List<ColorName> bwFromMap() {
+    List<ColorName> ret = [];
+    mapBW.forEach((key, value) {
+      for(String hex in value) {
+        ret.add(ColorName.fromHex(key, hex));
+      }
+    });
+    return ret;
+  }
+
+  static Color inverseColor(Color c, {bool? bw}) =>
+      (bw ?? isBW(c)) ?
+        (c.red * 0.299 + c.green * 0.587 + c.blue * 0.114) > 186 ? Colors.black : Colors.white
+        :
+          Color.fromRGBO(255-c.red, 255-c.green, 255-c.blue, c.opacity);
+
+  static bool isBW(Color c, {int diff = 10}) => ((c.red-c.green).abs() <= diff) && ((c.green-c.blue).abs() <= diff) && ((c.red-c.blue).abs() <= diff);
+
+  static String getColorNameFromRgb(int r, int g, int b) {
+    bool isBWG = isBW(Color.fromRGBO(r, g, b, 1.0));
+    print("isBWG:$isBWG");
+    List<ColorName> colorList;
+    if (isBWG) colorList = bwFromMap(); else  colorList = colorFromMap();//colorList12;//initColorList();
+    ColorName? closestMatch;
+    int minMSE = INT_MAX_VALUE;
+    int mse;
+    for (ColorName c in colorList) {
+      mse = c.computeMSE(r, g, b);
+      if (mse < minMSE) {
+        minMSE = mse;
+        closestMatch = c;
+      }
+    }
+    if (closestMatch != null) {
+      return closestMatch.getName();
+    } else {
+      return "No matched color name.";
+    }
+  }
+
+  static String getColorNameFromHex(int hexColor)
+  {
+    int r = ((hexColor & 16711680) >> 16);
+    int g = ((hexColor & 65280) >> 8);
+    int b = (hexColor & 15);
+    return getColorNameFromRgb(r, g, b);
+  }
+
+  // int colorToHex(Color c)
+  // {
+  //   return Integer.decode("0x" + Integer.toHexString(c.getRGB()).substring(2));
+  // }
+
+  static String getColorNameFromColor(Color color) => getColorNameFromRgb(color.red, color.green, color.blue);
+
+  static List<ColorName> colorList12 = [
+    new ColorName("Red",                 255, 000, 000), // 1
+    new ColorName("Pink",                255, 000, 127), // 3
+    new ColorName("Fuchsia",             255, 000, 255), // 2
+    new ColorName("Violet",              125, 000, 255), // 3
+    new ColorName("Blue",                000, 000, 255), // 1
+    new ColorName("Blue Azure",          000, 127, 255), // 3
+    new ColorName("Blue Cyan",           000, 255, 255), // 2
+    new ColorName("Green Light",         000, 255, 127), // 3
+    new ColorName("Green",               000, 255, 000), // 1
+    new ColorName("Green Chartreuse",    127, 255, 000), // 3
+    new ColorName("Yellow",              255, 255, 000), // 2
+    new ColorName("Orange",              255, 127, 000), // 2
+
+    // new ColorName("White",     255, 255, 255),
+    // new ColorName("Silver",    192, 192, 192),
+    // new ColorName("Gray",      128, 128, 128),
+    // new ColorName("Black",     000, 000, 000),
+    // new ColorName("Red",       255, 000, 000),
+    // new ColorName("Maroon",    128, 000, 000),
+    // new ColorName("Yellow",    255, 255, 000),
+    // new ColorName("Olive",     128, 128, 000),
+    // new ColorName("Lime",      000, 255, 000),
+    // new ColorName("Green",     000, 128, 000),
+    // new ColorName("Aqua",      000, 255, 255),
+    // new ColorName("Teal",      000, 128, 128),
+    // new ColorName("Blue",      000, 000, 255),
+    // new ColorName("Navy",      000, 000, 128),
+    // new ColorName("Fuchsi",    255, 000, 255),
+    // new ColorName("Purple",    128, 000, 128),
+
+
+
+
+
+  ];
+
+
   static List<ColorName> initColorList()
   {
     List<ColorName> colorList = [];
@@ -720,43 +851,6 @@ class ColorUtils
 
     return colorList;
   }
-
-  static Color inverseColor(Color c) => Color.fromRGBO(255-c.red, 255-c.green, 255-c.blue, c.opacity);
-
-  static String getColorNameFromRgb(int r, int g, int b)
-  {
-    List<ColorName> colorList = initColorList();
-    ColorName? closestMatch;
-    int minMSE = INT_MAX_VALUE;
-    int mse;
-    for (ColorName c in colorList) {
-      mse = c.computeMSE(r, g, b);
-      if (mse < minMSE) {
-        minMSE = mse;
-        closestMatch = c;
-      }
-    }
-    if (closestMatch != null) {
-      return closestMatch.getName();
-    } else {
-      return "No matched color name.";
-    }
-  }
-
-  static String getColorNameFromHex(int hexColor)
-  {
-    int r = ((hexColor & 16711680) >> 16);
-    int g = ((hexColor & 65280) >> 8);
-    int b = (hexColor & 15);
-    return getColorNameFromRgb(r, g, b);
-  }
-
-  // int colorToHex(Color c)
-  // {
-  //   return Integer.decode("0x" + Integer.toHexString(c.getRGB()).substring(2));
-  // }
-
-  static String getColorNameFromColor(Color color) => getColorNameFromRgb(color.red, color.green, color.blue);
 }
 
 class ColorName {
@@ -766,6 +860,14 @@ class ColorName {
   String name;
 
   ColorName(this.name, this.r, this.g, this.b);
+  static ColorName fromHex(String name, String hex) {
+    String hexColor = hex.toUpperCase().replaceAll("#", "");
+    if (hexColor.length == 6) {
+      hexColor = "FF" + hexColor;
+    }
+    Color color = Color(int.parse(hexColor, radix: 16));
+    return ColorName(name, color.red, color.green, color.blue);
+  }
 
   int computeMSE(int pixR, int pixG, int pixB)
   {
