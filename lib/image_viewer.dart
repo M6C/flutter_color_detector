@@ -24,6 +24,7 @@ class ImageViewer extends StatefulWidget {
 class _ImageViewer extends State<ImageViewer> {
   PhotoViewScaleStateController? _scaleStateController;
   PhotoViewController? _controller;
+  GlobalKey _photoKey = GlobalKey();
   static const double _padding_default = 8.0;
 
   @override
@@ -51,39 +52,47 @@ class _ImageViewer extends State<ImageViewer> {
         builder:  (BuildContext context, ImgDetails img) {
           return CustomPaint(
             child:
+              // Image(image: widget.provider,)
               PhotoView(
-              backgroundDecoration: BoxDecoration(color:ColorUtils.inverseColor(widget._currentColor)),
-              imageProvider: widget.provider,
-              controller: _controller,
-              scaleStateController: _scaleStateController,
-              onTapDown: (controller, detail, value) {
-                Offset at = detail.localPosition;
-                setState(() {
-                  print("onTapDown img:${img.width},${img.height} ctrl.scale:${_controller?.scale} value.scale:${value.scale} value.position:${value.position}");
-                  print("onTapDown at1:${at.dx},${at.dy}");
-                  // at = Offset(at.dx / (1-(_controller?.scale ?? 1.0)), at.dy / (1-(_controller?.scale ?? 1.0)));
-                  // at = Offset(at.dx * (_controller?.scale ?? 1.0), at.dy * (_controller?.scale ?? 1.0));
-                  // at = Offset(at.dx + (at.dx * (1-(_controller?.scale ?? 1.0))), at.dy/* + (at.dy * (1-(_controller?.scale ?? 1.0)))*/);
+                basePosition: Alignment.topLeft,
+                key: _photoKey,
+                backgroundDecoration: BoxDecoration(color:ColorUtils.inverseColor(widget._currentColor)),
+                imageProvider: widget.provider,
+                controller: _controller,
+                scaleStateController: _scaleStateController,
+                onTapDown: (controller, detail, value) {
+                  // Offset at = Offset.zero;
+                  // Offset at = Offset(img.width!/2-10, img.height!/2-10);//Offset.zero;
+                  Offset at = detail.localPosition;
+                  setState(() {
+                    print("onTapDown img:${img.width},${img.height} ctrl.scale:${_controller?.scale} value.scale:${value.scale} value.position:${value.position}");
+                    print("onTapDown at1:${at.dx},${at.dy}");
 
-                  // final matrix = Matrix4.identity()
-                  //   ..translate(at.dx, at.dy)
-                  //   ..scale(value.scale)
-                  //   ..rotateZ(value.rotation);
-                  // print("value.position:${value.position.dx},${value.position.dy}");
-                  // print("matrix:${matrix}");
-                  // var matrixInv = Matrix4.inverted(matrix);
-                  // print("matrix inverted ${matrixInv[0]}:${matrixInv[12]}");
-                  // at = Offset(at.dx + matrixInv[0], at.dy + matrixInv[12]);
-                  // print("onTapDown at2:${at.dx},${at.dy}");
+                    var scale = 1.0;//_controller!.scale ?? 1.0;
+                    widget._currentRect = getColorRect(img, at, scale:scale);
 
-                  var scale = _controller!.scale ?? 1.0;
-                  widget._currentColor = getColorAt(img, at, scale:scale);
-                  widget._currentRect = getColorRect(img, at, scale:scale);
-                  widget._currentPositionColors = getPositionsColorsAt(img, at, scale:scale);
-                });
-              },
-            ),
-            foregroundPainter: ShapePainter(widget._currentRect, color: ColorUtils.inverseColor(widget._currentColor)),
+                    // at = Offset(at.dx / (1-(_controller?.scale ?? 1.0)), at.dy / (1-(_controller?.scale ?? 1.0)));
+                    // at = Offset(at.dx * (_controller?.scale ?? 1.0), at.dy * (_controller?.scale ?? 1.0));
+                    // at = Offset(at.dx + (at.dx * (1-(_controller?.scale ?? 1.0))), at.dy/* + (at.dy * (1-(_controller?.scale ?? 1.0)))*/);
+                    at = Offset(at.dx + (at.dx * (1.0-(_controller?.scale ?? 1.0))), at.dy + (at.dy * (1.0-(_controller?.scale ?? 1.0)))); // +- OK
+                    // Add Fix Adjustment
+                    int sensX = 1; double shiftX = 7;
+                    int sensY = 1; double shiftY = 9;
+                    at = Offset(at.dx+(sensX*(shiftX)), at.dy+(sensY*shiftY));
+
+                    // RenderBox? box = _photoKey.currentContext?.findRenderObject() as RenderBox?;
+                    // Offset? position = box?.localToGlobal(Offset.zero); //this is global position
+                    // Offset pos = Offset(position?.dx ?? 0.0, position?.dy ?? 0.0);
+                    // print("PhotoView Position $pos");
+
+                    print("onTapDown at2:${at.dx},${at.dy}");
+
+                    widget._currentColor = getColorAt(img, at, scale:scale);
+                    widget._currentPositionColors = getPositionsColorsAt(img, at, scale:scale);
+                  });
+                },
+              ),
+              foregroundPainter: ShapePainter(widget._currentRect, color: Colors.red),//ColorUtils.inverseColor(widget._currentColor)),
           );
         },
       )
@@ -120,9 +129,9 @@ class _ImageViewer extends State<ImageViewer> {
   }
 
   List<int> getPixel(int val, int? max, {double scale = 1.0}) {
-    int depth = 10000000;
-    // print("getPixel ${(1/scale)} ${(1/scale) * depth} ${((1/scale) * depth).toInt()} ${(20 * ((1/scale) * depth).toInt())}");
-   int radius = (20 * (1/scale) * depth) ~/ depth;
+    // int depth = 10000000;
+    // print("getPixel ${(1/scale)} ${((1/scale) * depth)} ${(20 * ((1/scale) * depth))} ${(20 * ((1/scale) * depth)) ~/ depth}");
+    int radius = 20;//(20 * ((1/scale) * depth)) ~/ depth;
     // print("getPixel val:$val max:$max scale:$scale radius:$radius");
     int size = radius;
     int xS = val - size~/2;
@@ -151,6 +160,10 @@ class _ImageViewer extends State<ImageViewer> {
   Map<Offset, Color> getPositionsColorsAt(ImgDetails img, Offset at, {double scale = 1.0}) {
     Rect rect = getColorRect(img, at, scale:scale);
 
+    // double s = 1.0-scale;
+    // double h = 1.0;//(img.width ?? 1.0)/(img.height ?? 1.0);
+    // rect = Rect.fromLTRB(rect.left+(rect.left*s*h), rect.top-(rect.top*s*h), rect.right+(rect.right*s*h), rect.bottom-(rect.bottom*s*h));
+
     Map<Offset, Color> colors = {};
     for(int x=rect.left.toInt() ; x<rect.right.toInt() ; x++) {
       for(int y=rect.top.toInt() ; y<rect.bottom.toInt() ; y++) {
@@ -166,6 +179,14 @@ class _ImageViewer extends State<ImageViewer> {
     List<int> ySE = getPixel(at.dy.toInt(), img.height, scale: scale);
 
     return Rect.fromLTRB(xSE[0].toDouble(), ySE[0].toDouble(), xSE[1].toDouble(), ySE[1].toDouble());
+
+    // Rect rect = Rect.fromCenter(center: at, width: 20, height: 20);
+    //
+    // double s = 1.0-scale;
+    // rect = Rect.fromLTRB(rect.left-(rect.left*s), rect.top-(rect.top*s), rect.right-(rect.right*s), rect.bottom-(rect.bottom*s));
+    //
+    // return rect;
+    // return Rect.fromCenter(center: at, width: 20, height: 20);
   }
 
   Future<String> getColorName(Color color) => Future.value(ColorUtils.getColorNameFromRgb(color.red, color.green, color.blue));
